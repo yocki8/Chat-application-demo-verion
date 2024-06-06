@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Socket.IO chat</title>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="font-sans h-dvh">
+        <form id="roomForm" class="h-dvh gap-4 justify-center flex items-center">
+            <input placeholder="Enter room number" type="text" class="h-20 border-8 rounded-2xl" />
+            <button class="bg-blue-400 px-3 py-2 rounded-2xl">submit</button>
+        </form>
+
+        <div id="chat" class="hidden">
+            <ul id="messages" class="list-none m-0 p-0"></ul>
+            <h5 id="typing" class="hidden">typing...</h5>
+            <form
+                id="form"
+                class="fixed bottom-0 left-0 right-0 flex bg-black bg-opacity-25 backdrop-blur-md p-1">
+                <input
+                    id="input"
+                    class="flex-grow bg-white border-none px-4 rounded-full m-1 focus:outline-none" />
+                <button
+                    type="submit"
+                    class="bg-gray-500 text-white px-4 py-1 rounded focus:outline-none m-1">
+                    Send
+                </button>
+            </form>
+        </div>
+
+        <script>
+            var socket = io();
+            let room = null;
+
+            const form = document.getElementById("form");
+            const input = document.getElementById("input");
+            const chat = document.getElementById("chat");
+            const typing = document.getElementById("typing");
+            const messages = document.getElementById("messages");
+            const roomForm = document.getElementById('roomForm');
+
+            roomForm.addEventListener("submit", function (e) {
+                e.preventDefault();
+                room = roomForm.querySelector('input').value;
+                socket.emit('join_room',room);
+
+                roomForm.classList.add('hidden');
+                chat.classList.remove('hidden');
+            });
+            form.addEventListener("submit", function (e) {
+                e.preventDefault();
+                if (input.value) {
+                    messages.insertAdjacentHTML(
+                        `beforeend`,
+                        `<li class="text-xl font-semibold odd:bg-gray-300">${input.value}</li>`
+                    );
+                    socket.emit("chat message", { msg: input.value, room });
+                    input.value = "";
+                }
+            });
+
+            input.addEventListener("focusin", (e) => {
+                socket.emit("typing",{isTyping:true,room});
+            });
+            input.addEventListener("focusout", (e) => {
+                socket.emit("typing",{isTyping:false,room} );
+            });
+
+            socket.on("chat message", function (msg) {
+                messages.insertAdjacentHTML(
+                    `beforeend`,
+                    `<li class="text-xl font-semibold odd:bg-gray-300">${msg}</li>`
+                );
+                window.scrollTo(0, document.body.scrollHeight);
+            });
+
+            socket.on("typing", function (isTyping) {
+                if (isTyping) typing.classList.remove("hidden");
+                else typing.classList.add("hidden");
+            });
+        </script>
+    </body>
+</html>
